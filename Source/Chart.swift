@@ -13,7 +13,7 @@ public protocol ChartDelegate: class {
     Tells the delegate that the specified chart has been touched.
 
     - parameter chart: The chart that has been touched.
-    - parameter indexes: Each element of this array contains the index of the data that has been touched, one for each 
+    - parameter indexes: Each element of this array contains the index of the data that has been touched, one for each
       series. If the series hasn't been touched, its index will be nil.
     - parameter x: The value on the x-axis that has been touched.
     - parameter left: The distance from the left side of the chart.
@@ -22,7 +22,7 @@ public protocol ChartDelegate: class {
     func didTouchChart(_ chart: Chart, indexes: [Int?], x: Double, left: CGFloat)
 
     /**
-    Tells the delegate that the user finished touching the chart. The user will 
+    Tells the delegate that the user finished touching the chart. The user will
     "finish" touching the chart only swiping left/right outside the chart.
 
     - parameter chart: The chart that has been touched.
@@ -30,8 +30,8 @@ public protocol ChartDelegate: class {
     */
     func didFinishTouchingChart(_ chart: Chart)
     /**
-     Tells the delegate that the user ended touching the chart. The user 
-     will "end" touching the chart whenever the touchesDidEnd method is 
+     Tells the delegate that the user ended touching the chart. The user
+     will "end" touching the chart whenever the touchesDidEnd method is
      being called.
      
      - parameter chart: The chart that has been touched.
@@ -73,7 +73,7 @@ open class Chart: UIControl {
     }
 
     /**
-    The values to display as labels on the x-axis. You can format these values  with the `xLabelFormatter` attribute. 
+    The values to display as labels on the x-axis. You can format these values  with the `xLabelFormatter` attribute.
     As default, it will display the values of the series which has the most data.
     */
     open var xLabels: [Double]?
@@ -104,7 +104,7 @@ open class Chart: UIControl {
     Values to display as labels of the y-axis. If not specified, will display the lowest, the middle and the highest
     values.
     */
-    open var yLabels: [Double]?
+    open var yLabels: [(value: Double, title: String)]?
 
     /**
     Formatter for the labels on the y-axis.
@@ -293,6 +293,12 @@ open class Chart: UIControl {
         let series = self.series[seriesIndex] as ChartSeries
         return series.data[dataIndex!].y
     }
+    
+    open func valuesForSeries(_ seriesIndex: Int, atIndex dataIndex: Int?) -> (Double, Double)? {
+        if dataIndex == nil { return nil }
+        let series = self.series[seriesIndex] as ChartSeries
+        return series.data[dataIndex!]
+    }
 
     fileprivate func drawIBPlaceholder() {
         let placeholder = UIView(frame: self.frame)
@@ -339,7 +345,7 @@ open class Chart: UIControl {
 
             segments.forEach({ segment in
                 let scaledXValues = scaleValuesOnXAxis( segment.map { $0.x } )
-                let scaledYValues = scaleValuesOnYAxis( segment.map { $0.y } )
+                let scaledYValues = scaleValuesOnYAxis( segment.map { (value: $0.y, title: "!") } )
 
                 if series.line {
                     drawLine(scaledXValues, yValues: scaledYValues, seriesIndex: index)
@@ -424,7 +430,7 @@ open class Chart: UIControl {
         return scaled
     }
 
-    fileprivate func scaleValuesOnYAxis(_ values: [Double]) -> [Double] {
+    fileprivate func scaleValuesOnYAxis(_ values: [(value: Double, title: String)]) -> [Double] {
         let height = Double(drawingHeight)
         var factor: Double
         if max.y - min.y == 0 {
@@ -432,8 +438,8 @@ open class Chart: UIControl {
         } else {
             factor = height / (max.y - min.y)
         }
-
-        let scaled = values.map { Double(self.topInset) + height - factor * ($0 - self.min.y) }
+        
+        let scaled: [Double] = values.map { Double(self.topInset) + height - factor * ($0.value - self.min.y) }
 
         return scaled
     }
@@ -626,20 +632,27 @@ open class Chart: UIControl {
         context.setStrokeColor(gridColor.cgColor)
         context.setLineWidth(0.5)
 
-        var labels: [Double]
+        var labels: [(value: Double, title: String)]
         if yLabels == nil {
-            labels = [(min.y + max.y) / 2, max.y]
+            
+            let val1: Double = (min.y + max.y) / 2
+            let val2: Double = max.y
+            
+            labels = [(value: val1, title: "\(val1)"), (value: val2, title: "\(val2)")]
+            
             if yLabelsOnRightSide || min.y != 0 {
-                labels.insert(min.y, at: 0)
+                labels.insert((value: min.y, title: "\(min.y)"), at: 0)
             }
         } else {
             labels = yLabels!
         }
 
+        
+        
         let scaled = scaleValuesOnYAxis(labels)
         let padding: CGFloat = 5
         let zero = CGFloat(getZeroValueOnYAxis(zeroLevel: 0))
-
+        
         scaled.enumerated().forEach { (i, value) in
 
             let y = CGFloat(value)
@@ -649,7 +662,7 @@ open class Chart: UIControl {
 
                 context.move(to: CGPoint(x: CGFloat(0), y: y))
                 context.addLine(to: CGPoint(x: self.bounds.width, y: y))
-                if labels[i] != 0 {
+                if labels[i].value != 0 {
                     // Horizontal grid for 0 is not dashed
                     context.setLineDash(phase: CGFloat(0), lengths: [CGFloat(5)])
                 } else {
@@ -660,7 +673,7 @@ open class Chart: UIControl {
 
             let label = UILabel(frame: CGRect(x: padding, y: y, width: 0, height: 0))
             label.font = labelFont
-            label.text = yLabelsFormatter(i, labels[i])
+            label.text = labels[i].title
             label.textColor = labelColor
             label.sizeToFit()
 
@@ -847,5 +860,19 @@ extension Sequence where Element == Double {
     }
     func maxOrZero() -> Double {
         return self.max() ?? 0.0
+    }
+}
+
+
+extension Sequence where Element == (value: Double, title: String)
+{
+    func minOrZero() -> Double
+    {
+        return self.map { $0.value }.min() ?? 0.0
+    }
+    
+    func maxOrZero() -> Double
+    {
+        return self.map { $0.value }.max() ?? 0.0
     }
 }

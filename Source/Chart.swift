@@ -324,7 +324,7 @@ open class Chart: UIControl {
 
     fileprivate func drawChart() {
 
-        drawingHeight = bounds.height - bottomInset - topInset
+        drawingHeight = bounds.height - bottomInset - topInset + 20
         drawingWidth = bounds.width
 
         let minMax = getMinMax()

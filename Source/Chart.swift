@@ -671,7 +671,7 @@ open class Chart: UIControl {
                 context.addLine(to: CGPoint(x: self.bounds.width, y: y))
                 if labels[i].value != 0 {
                     // Horizontal grid for 0 is not dashed
-                    context.setLineDash(phase: CGFloat(0), lengths: [CGFloat(5)])
+                    context.setLineDash(phase: CGFloat(0), lengths: [])
                 } else {
                     context.setLineDash(phase: CGFloat(0), lengths: [])
                 }
@@ -706,7 +706,7 @@ open class Chart: UIControl {
 
             path.move(to: CGPoint(x: left, y: 0))
             path.addLine(to: CGPoint(x: left, y: drawingHeight + topInset))
-            shapeLayer.path = path
+            shapeLayer.path = path.copy(dashingWithPhase: CGFloat(0), lengths: [CGFloat(5)])
         } else {
             // Create the line
             let path = CGMutablePath()
@@ -715,7 +715,7 @@ open class Chart: UIControl {
             path.addLine(to: CGPoint(x: left, y: drawingHeight + topInset))
             let shapeLayer = CAShapeLayer()
             shapeLayer.frame = self.bounds
-            shapeLayer.path = path
+            shapeLayer.path = path.copy(dashingWithPhase: CGFloat(0), lengths: [CGFloat(5)])
             shapeLayer.strokeColor = highlightLineColor.cgColor
             shapeLayer.fillColor = nil
             shapeLayer.lineWidth = highlightLineWidth

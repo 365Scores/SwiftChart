@@ -261,6 +261,13 @@ open class Chart: UIControl {
     open func add(_ series: ChartSeries) {
         self.series.append(series)
     }
+    
+    open func addIfEmpty(_ series: ChartSeries) {
+        if self.series.isEmpty
+        {
+            self.series.append(series)
+        }
+    }
 
     /**
     Adds multiple chart series.
